@@ -1,0 +1,39 @@
+
+#CACHE SETTING
+spring:
+  cache:
+    cache-names:
+     - rate-limit-buckets
+    caffeine:
+      spec: maximumSize=100000,expireAfterAccess=3600s
+
+
+
+#RATE LIMITER WITH BUCKET4J SETTING
+bucket4j:
+  enabled: true
+  filters:
+    - cache-name: rate-limit-buckets
+      url: /api/.*
+
+      strategy: first
+      http-response-body: "{ \"status\": 429, \"error\": \"Too Many Requests\", \"message\": \"You have exhausted your API Request Quota\" }"
+      rate-limits:
+        - cache-key: "getHeader('X-api-key')"
+          bandwidths:
+            - capacity: 5
+              time: 1
+              unit: hours
+        - cache-key: "getHeader('X-api-key')"
+          execute-condition: "getHeader('X-api-key').startsWith('PROF')"
+          bandwidths:
+            - capacity: 20
+              time: 1
+              unit: hours
+        - cache-key: "getHeader('X-api-key')"
+          execute-condition: "getHeader('X-api-key').startsWith('BASIC')"
+          bandwidths:
+            - capacity: 10
+              time: 1
+              unit: hours
+
